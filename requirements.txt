@@ -1,0 +1,145 @@
+﻿# ==============================================================================#
+# Requirements File for Quantum-Accelerated Portfolio Optimization
+# ==============================================================================#
+# Project: Constrained Portfolio Optimization via QAOA with XY-Mixers
+# Paper: Mancilla, Bouloumis, & Goguikian (2026) - arXiv:2602.14827
+# Python: >=3.8,<3.12
+# Purpose: Production-grade dependency specification with explicit version bounds
+#          to ensure reproducibility, stability, and compatibility across the
+#          quantum computing (PennyLane), classical optimization (D-Wave Neal),
+#          and financial econometrics (PyPortfolioOpt) stacks.
+# ==============================================================================#
+
+# -----------------------------------------------------------------------------
+# Core Numerical Computing Stack
+# -----------------------------------------------------------------------------
+# NumPy: Foundation for n-dimensional array operations, linear algebra,
+#        spectral decomposition (eigenvalue computation for covariance shrinkage),
+#        and vectorized operations. Version >=1.21.0 required for stable
+#        dtype handling and modern random number generation API.
+numpy>=1.21.0,<2.0.0
+
+# Pandas: Time-series data structures for OHLCV price data, log-return calculation,
+#         rolling window analysis, and timezone-aware datetime indexing.
+#         Version >=1.3.0 required for robust .ffill() behavior and modern
+#         index alignment semantics.
+pandas>=1.3.0,<3.0.0
+
+# SciPy: Scientific computing library providing:
+#        • scipy.optimize.minimize (SLSQP solver for constrained QP)
+#        • scipy.linalg (matrix operations for covariance conditioning)
+#        • scipy.stats (statistical tests for return distribution analysis)
+#        Version >=1.7.0 required for stable SLSQP convergence with box constraints.
+scipy>=1.7.0,<2.0.0
+
+# -----------------------------------------------------------------------------
+# Quantum Computing Stack (PennyLane Ecosystem)
+# -----------------------------------------------------------------------------
+# PennyLane: Quantum machine learning and quantum computing framework.
+#            Provides:
+#            • qml.device for state-vector simulation
+#            • qml.Hamiltonian for cost/mixer Hamiltonian construction
+#            • qml.templates.ApproxTimeEvolution for Trotterized unitary evolution
+#            • qml.AdamOptimizer for gradient-based parameter optimization
+#            • qml.QNode decorator for hybrid quantum-classical computation
+#            Version >=0.32.0 required for stable Hamiltonian arithmetic and
+#            complete-graph mixer support. Pin <0.40.0 to avoid breaking changes
+#            in template APIs during active development.
+pennylane>=0.32.0,<0.40.0
+
+# PennyLane-Lightning: High-performance C++ state-vector simulator backend.
+#                      Optional but strongly recommended for 10+ qubit circuits.
+#                      Provides 2-5× speedup over default.qubit for Hamiltonian
+#                      expectation value calculation via single-pass value_and_grad.
+pennylane-lightning>=0.32.0,<0.40.0
+
+# Autograd: Automatic differentiation library (PennyLane dependency).
+#           Required for gradient computation of quantum circuit parameters.
+#           Explicitly pinned to ensure compatibility with PennyLane's grad engine.
+autograd>=1.5
+
+# -----------------------------------------------------------------------------
+# Classical Combinatorial Optimization Stack (D-Wave Ocean SDK)
+# -----------------------------------------------------------------------------
+# Dimod: Binary quadratic model (BQM) representation and manipulation.
+#        Provides:
+#        • dimod.BinaryQuadraticModel for QUBO formulation
+#        • dimod.SampleSet for solution set handling
+#        • dimod.ExactSolver for brute-force validation (N<=20)
+#        Version >=0.12.0 required for stable BQM.from_qubo() constructor
+#        and modern SampleSet filtering API.
+dimod>=0.12.0,<0.13.0
+
+# Neal: D-Wave's simulated annealing sampler for classical QUBO solving.
+#       Implements Metropolis-Hastings with geometric cooling schedule.
+#       Version >=0.6.0 required for num_sweeps parameter and deterministic
+#       seeding via numpy.random.default_rng() integration.
+neal>=0.6.0,<0.7.0
+
+# -----------------------------------------------------------------------------
+# Financial Optimization and Risk Management Stack
+# -----------------------------------------------------------------------------
+# PyPortfolioOpt: Modern portfolio theory implementation library.
+#                 Provides:
+#                 • risk_models.CovarianceShrinkage for Ledoit-Wolf estimation
+#                 • HRPOpt for hierarchical risk parity baseline
+#                 • EfficientFrontier for Sharpe-max validation (optional)
+#                 Version >=1.5.0 required for stable .ledoit_wolf() method and
+#                 proper handling of singular covariance matrices via shrinkage.
+#                 Pin <2.0.0 to avoid major API changes.
+pypfopt>=1.5.0,<2.0.0
+
+# CVXPy: Convex optimization library (PyPortfolioOpt dependency).
+#        Required for efficient frontier calculation if using EfficientFrontier.
+#        Explicitly included to ensure ECOS/SCS solver availability.
+cvxpy>=1.2.0,<2.0.0
+
+# -----------------------------------------------------------------------------
+# Market Data Retrieval (Optional - Not in Original Imports)
+# -----------------------------------------------------------------------------
+# YFinance: Yahoo Finance API wrapper for historical OHLCV data retrieval.
+#           Mentioned in paper but not imported in provided snippet.
+#           Uncomment if data pipeline requires direct Yahoo Finance integration.
+# yfinance>=0.2.0,<0.3.0
+
+# -----------------------------------------------------------------------------
+# Development and Testing Dependencies (Optional)
+# -----------------------------------------------------------------------------
+# Uncomment the following section for development environments:
+#
+# pytest>=7.0.0              # Unit testing framework
+# pytest-cov>=3.0.0          # Coverage reporting
+# black>=22.0.0              # Code formatting (PEP 8)
+# mypy>=0.990                # Static type checking
+# flake8>=5.0.0              # Linting
+# jupyterlab>=3.5.0          # Interactive development
+# matplotlib>=3.5.0          # Visualization for backtesting results
+# seaborn>=0.12.0            # Statistical visualization
+
+# -----------------------------------------------------------------------------
+# Platform-Specific Notes
+# -----------------------------------------------------------------------------
+# Windows Users: PennyLane-Lightning requires Microsoft Visual C++ 14.0 or greater.
+#                Install "Desktop development with C++" workload via Visual Studio.
+#
+# macOS Users:   If using Apple Silicon (M1/M2), ensure Rosetta 2 is installed
+#                or use native ARM64 builds. PennyLane >=0.32.0 supports ARM64.
+#
+# Linux Users:   No special requirements. Ensure GCC >=7.5.0 for Lightning builds.
+
+# -----------------------------------------------------------------------------
+# Installation Instructions
+# -----------------------------------------------------------------------------
+# Standard installation:
+#   pip install -r requirements.txt
+#
+# Development installation (includes optional dependencies):
+#   pip install -r requirements.txt
+#   pip install pytest pytest-cov black mypy flake8
+#
+# Editable installation (for package development):
+#   pip install -e .
+#
+# Verification:
+#   python -c "import pennylane as qml; print(qml.about())"
+#   python -c "import neal; import dimod; import pypfopt; print('All imports successful')"
