@@ -1,0 +1,376 @@
+﻿# ==============================================================================
+# MASTER_STUDY_CONFIGURATION 
+# ==============================================================================
+# This file contains the complete, immutable state configuration required
+# to reproduce the hybrid quantum-classical portfolio optimization study.
+# It explicitly parameterizes all conventions that can cause silent numerical drift.
+# ==============================================================================
+
+# ==============================================================================
+# GLOBAL ENVIRONMENT & FINANCIAL SETUP
+# ==============================================================================
+global_setup:
+  # Data Type: list[str]
+  # Details: Exact ticker identifiers used across all modules.
+  universe:
+    - "AAPL"
+    - "MSFT"
+    - "GOOGL"
+    - "AMZN"
+    - "JPM"
+    - "V"
+    - "TSLA"
+    - "UNH"
+    - "LLY"
+    - "XOM"
+
+  # Data Type: int
+  # Details: Rolling window length in trading days used for estimation on [t-L, t).
+  lookback_window_L: 180
+
+  # Data Type: int
+  # Details: Annualization factor used for daily->annual conversion of mu and Sigma.
+  annualization_factor: 252
+
+  # Data Type: str
+  # Details: Walk-forward rebalance frequency.
+  rebalance_frequency: "monthly"
+
+  # Data Type: int
+  # Details: Out-of-sample year used for evaluation.
+  backtest_year: 2025
+
+# ==============================================================================
+# REBALANCE CALENDAR (MUST BE DETERMINISTIC)
+# ==============================================================================
+rebalance_calendar:
+  # Data Type: str
+  # Details: Deterministic rule used to generate monthly rebalance timestamps.
+  # MUST be chosen and fixed. Typical choices:
+  # - "first_trading_day_of_month"
+  # - "last_trading_day_of_month"
+  # - "month_end" (but then must map to trading day)
+  rebalance_rule: "first_trading_day_of_month"
+
+  # Data Type: list[str] | None
+  # Details: Optional explicit list of rebalance dates (ISO format). If provided, this
+  # list overrides rebalance_rule and becomes the authoritative schedule.
+  # This is the strongest replication artifact.
+  rebalance_dates_override: null
+
+# ==============================================================================
+# DATA RETRIEVAL & PREPROCESSING CONVENTIONS
+# ==============================================================================
+data_conventions:
+  # Data Type: str
+  # Details: Expected price field from yfinance output after normalization.
+  price_field: "Close"
+
+  # Data Type: bool
+  # Details: Must be True to match the manuscript's auto-adjusted close requirement.
+  yfinance_auto_adjust: true
+
+  # Data Type: str
+  # Details: Defines the exact missing-data policy.
+  missing_data_handling: "ffill_then_dropna"
+
+  # Data Type: str
+  # Details: Defines whether NA dropping occurs before or after slicing the L-day window.
+  # This must be explicit because it changes the effective sample size.
+  # Valid examples: "clean_then_slice" or "slice_then_clean"
+  window_construction_policy: "clean_then_slice"
+
+  # Data Type: int
+  # Details: Minimum acceptable number of observations after cleaning within each window.
+  # If < lookback_window_L, either fail fast or adjust by deterministic rule.
+  min_observations_per_window: 180
+
+# ==============================================================================
+# RETURN CONVENTIONS (CRITICAL: AFFECTS mu, Sigma, AND PERFORMANCE)
+# ==============================================================================
+return_conventions:
+  # Data Type: str
+  # Details: Must be fixed. Typical options: "log" or "simple".
+  # The manuscript excerpt says "daily returns" but does not fully disambiguate.
+  return_type: "log"
+
+  # Data Type: str
+  # Details: How monthly (holding-period) asset returns are computed between rebalances.
+  # Examples:
+  # - "price_relative": P_{t+}/P_t - 1
+  # - "compound_daily_returns": product(1+r_d)-1 (for simple returns)
+  holding_period_return_method: "price_relative"
+
+# ==============================================================================
+# CAPITAL & ALLOCATION BOUNDARIES
+# ==============================================================================
+capital_and_bounds:
+  # Data Type: float
+  # Details: Starting portfolio value.
+  initial_capital: 1000000.0
+
+  # Data Type: tuple[float, float] (represented as list in YAML)
+  # Details: Bounds for SLSQP allocation on selected names.
+  allocation_bounds: [0.05, 0.50]
+
+# ==============================================================================
+# RAW UNPROCESSED INPUT DATA STRUCTURE SCHEMAS (DOCUMENTATION / VALIDATION)
+# ==============================================================================
+raw_data_schema_example:
+  dataframe_metadata:
+    index_type: "pandas.DatetimeIndex"
+    index_name: "Date"
+    column_types: "float64"
+    # Note: shape_per_window is an expectation AFTER applying window_construction_policy.
+    shape_per_window_expected: "(180, 10)"
+    missing_data_handling: "forward-fill (ffill) then dropna"
+    column_index_policy: "must be single-level with universe tickers"
+
+  # NOTE: Sample values are illustrative. They are not a reproducibility requirement.
+  data_sample_head:
+    Date:  ["2024-04-15", "2024-04-16", "2024-04-17", "2024-04-18", "2024-04-19", "2024-04-22", "2024-04-23", "2024-04-24", "2024-04-25", "2024-04-26"]
+    AAPL:  [172.69, 169.38, 168.00, 167.04, 165.00, 165.84, 166.90, 169.02, 169.89, 173.50]
+    MSFT:  [413.64, 414.58, 411.84, 404.27, 399.12, 400.96, 409.06, 399.04, 402.25, 406.32]
+    GOOGL: [156.33, 156.00, 156.88, 157.46, 155.72, 157.95, 159.92, 157.95, 156.00, 157.16]
+    AMZN:  [183.62, 183.32, 181.28, 179.22, 174.63, 177.23, 179.54, 176.59, 173.67, 179.62]
+    JPM:   [182.89, 180.80, 181.25, 183.00, 185.23, 187.15, 188.05, 189.12, 190.01, 191.50]
+    V:     [270.50, 268.12, 269.05, 269.50, 271.10, 273.05, 274.15, 272.80, 273.50, 275.10]
+    TSLA:  [161.48, 157.11, 155.45, 149.93, 147.05, 142.05, 144.68, 162.13, 170.18, 168.29]
+    UNH:   [439.20, 462.11, 472.15, 480.05, 485.10, 488.20, 490.15, 489.50, 492.10, 495.00]
+    LLY:   [750.12, 748.20, 752.00, 745.10, 730.20, 735.50, 740.10, 738.50, 742.00, 748.50]
+    XOM:   [119.81, 118.50, 118.10, 119.05, 120.15, 121.00, 120.50, 119.80, 118.90, 119.20]
+
+# ==============================================================================
+# OBJECTIVE FUNCTION & CONSTRAINT PARAMETERS (DISCRETE SELECTION)
+# ==============================================================================
+objective_function:
+  # Data Type: int
+  # Details: Hard K-of-N constraint.
+  cardinality_K: 5
+
+  # Data Type: float
+  # Details: Risk-return scalarization weight.
+  risk_aversion_q: 0.3
+
+  # Data Type: float
+  # Details: Continuity bias strength. Must be applied consistently in QAOA (alpha_i)
+  # and SA (Q_ii). The exact arithmetic must be explicitly defined below.
+  continuity_bonus_kappa: 0.1
+
+  # Data Type: str
+  # Details: Explicit arithmetic rule for applying continuity bonus to linear terms.
+  # Examples:
+  # - "subtract_kappa_from_linear_term"
+  # - "subtract_kappa_times_abs_linear_term"
+  # - "multiply_linear_term_by_(1-kappa)"
+  continuity_bonus_application_rule: "subtract_kappa_from_linear_term"
+
+  # Data Type: str
+  # Details: Determines whether the classical rescoring uses Eq. (1) literally including Sigma diagonal.
+  classical_objective_rescoring_policy: "use_eq1_include_sigma_diag"
+
+# ==============================================================================
+# COVARIANCE / MEAN ESTIMATION (ECONOMETRICS)
+# ==============================================================================
+estimation:
+  # Data Type: str
+  # Details: Must match manuscript: Ledoit-Wolf shrinkage covariance.
+  covariance_estimator: "ledoit_wolf_shrinkage"
+
+  # Data Type: str
+  # Details: Mean estimator used for mu (daily mean of returns).
+  mean_estimator: "sample_mean"
+
+  # Data Type: bool
+  # Details: Annualize mu and Sigma by multiplying by annualization_factor.
+  annualize_mu_and_sigma: true
+
+# ==============================================================================
+# QUANTUM SOLVER (QAOA-XY) CONFIGURATION
+# ==============================================================================
+qaoa_architecture:
+  # Data Type: list[int]
+  # Details: Depth scan set.
+  qaoa_depths_p: [1, 2, 3, 4, 5, 6]
+
+  # Data Type: str
+  # Details: PennyLane device name used for statevector simulation.
+  qaoa_device_name: "default.qubit"
+
+  # Data Type: str
+  # Details: Measurement mode. Manuscript implies full probability vector (statevector).
+  qaoa_measurement_mode: "statevector_full_probs"
+
+  # Data Type: int | None
+  # Details: Number of shots if sampling is used. Must be None for full-prob statevector workflow.
+  qaoa_shots: null
+
+  # Data Type: str
+  # Details: XY mixer interaction graph topology. Manuscript discusses ring/complete;
+  # their implementation states complete-graph XY mixer.
+  xy_mixer_graph_type: "complete"
+
+  # Data Type: tuple[float, float] (represented as list in YAML)
+  # Details: Initialization endpoints stated in the manuscript's experiment table.
+  qaoa_gamma_bounds: [0.1, 0.5]
+
+  # Data Type: tuple[float, float] (represented as list in YAML)
+  # Details: Initialization endpoints stated in the manuscript's experiment table.
+  qaoa_beta_bounds: [0.5, 0.1]
+
+  # Data Type: str
+  # Details: Exact mapping rule producing gamma_l and beta_l for each depth p.
+  # Must reconcile Eq. (6) with the endpoint bounds above.
+  trotter_initialization_rule: "linear_ramp_between_bounds_per_depth"
+
+qaoa_optimization:
+  # Data Type: float
+  qaoa_stepsize: 0.02
+
+  # Data Type: float
+  qaoa_epsilon: 1.0e-10
+
+  # Data Type: int
+  qaoa_max_iterations: 100
+
+  # Data Type: bool
+  qaoa_use_early_stopping: true
+
+  # Data Type: dict
+  # Details: Early stopping must be deterministic and logged.
+  qaoa_early_stopping:
+    # Data Type: str
+    # Details: Metric monitored for early stopping.
+    monitor: "expected_cost"
+
+    # Data Type: int
+    # Details: Number of iterations with no sufficient improvement allowed.
+    patience: 10
+
+    # Data Type: float
+    # Details: Minimum relative/absolute improvement threshold to reset patience.
+    min_delta: 1.0e-06
+
+  # Data Type: float
+  # Details: Probability threshold for candidate filtering.
+  qaoa_readout_filter_prob: 0.01
+
+  # Data Type: str
+  # Details: Explicit feasibility filter rule.
+  qaoa_readout_feasibility_filter: "hamming_weight_equals_K"
+
+# ==============================================================================
+# CLASSICAL BASELINE (SIMULATED ANNEALING) CONFIGURATION
+# ==============================================================================
+sa_solver:
+  # Data Type: float
+  # Details: Penalty scaling coefficient used in P = scalar * max_coeff * N.
+  sa_penalty_scalar: 2.5
+
+  # Data Type: int
+  sa_num_reads: 5000
+
+  # Data Type: int
+  sa_num_sweeps: 1000
+
+  # Data Type: str
+  # Details: Feasibility enforcement described in the manuscript.
+  sa_feasibility_filter: "keep_best_sample_with_sum_x_equals_K"
+
+# ==============================================================================
+# CONTINUOUS ALLOCATION (SLSQP SHARPE-MAX)
+# ==============================================================================
+allocation:
+  # Data Type: str
+  # Details: Allocation objective specified by manuscript: Sharpe-max (equivalently minimize negative Sharpe).
+  allocation_objective: "maximize_sharpe"
+
+  # Data Type: float
+  # Details: Must be explicit for Sharpe computation. Manuscript does not print it; set deterministically.
+  risk_free_rate_annual: 0.0
+
+  # Data Type: str
+  # Details: Optimizer to use for constrained continuous optimization.
+  optimizer: "SLSQP"
+
+  # Data Type: str
+  # Details: Constraint enforcement for allocation.
+  full_investment_constraint: "sum_weights_equals_1"
+
+  # Data Type: tuple[float, float] (represented as list in YAML)
+  bounds: [0.05, 0.50]
+
+# ==============================================================================
+# HRP BASELINE / FALLBACK
+# ==============================================================================
+hrp:
+  # Data Type: bool
+  # Details: HRP is both a baseline strategy and a fallback weight generator.
+  compute_hrp_baseline: true
+
+  # Data Type: bool
+  use_hrp_as_fallback: true
+
+# ==============================================================================
+# FRICTION, EVALUATION & METRICS
+# ==============================================================================
+evaluation_metrics:
+  # Data Type: float
+  # Details: Transaction cost applied to turnover.
+  transaction_cost_bps: 0.0005
+
+  # Data Type: str
+  # Details: Turnover definition per manuscript.
+  turnover_definition: "l1_norm_weight_change"
+
+  # Data Type: int
+  # Details: Periods-per-year used for annualizing monthly realized metrics.
+  periods_per_year: 12
+
+  # Data Type: str
+  # Details: Sharpe formula should match manuscript (even if nonstandard).
+  sharpe_definition_policy: "use_manuscript_SR_formula"
+
+# ==============================================================================
+# RANDOMNESS CONTROL (CRITICAL FOR SA REPRODUCIBILITY)
+# ==============================================================================
+randomness:
+  # Data Type: int
+  # Details: Global seed used wherever applicable.
+  global_seed: 12345
+
+  # Data Type: int
+  # Details: Seed for SA sampler runs (if supported by your SA implementation wrapper).
+  sa_seed: 12345
+
+  # Data Type: int
+  # Details: Seed for any stochastic initialization in QAOA optimization (if applicable).
+  qaoa_seed: 12345
+
+# ==============================================================================
+# PLOTTING & VISUALIZATION PARAMETERS (NON-SCIENTIFIC BUT REPRODUCES FIGURES)
+# ==============================================================================
+plotting_parameters:
+  fig2_depth_scaling:
+    x_axis: "Circuit Depth (p)"
+    y_axes: 
+      - "Final Cost"
+      - "Final Gradient Norm (log)"
+      - "Time per Iteration (ms)"
+    log_scale_threshold: 1.0e-09
+
+  fig3_performance:
+    x_axis: "Date (Monthly 2025)"
+    y_axis_value: "Portfolio Value ($M)"
+    y_axis_drawdown: "Drawdown (%)"
+    baselines_to_plot: 
+      - "SA"
+      - "QAOA_XY"
+      - "HRP"
+
+  fig6_allocation_heatmap:
+    cmap: "YlOrRd"
+    y_axis: "Assets (Universe)"
+    x_axis: "Month (Feb - Dec 2025)"
+    vmin: 0.0
+    vmax: 0.50
