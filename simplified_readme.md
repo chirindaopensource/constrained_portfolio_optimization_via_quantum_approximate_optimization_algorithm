@@ -282,4 +282,9 @@ GitHub repository: https://github.com/chirindaopensource/constrained_portfolio_o
 ## Acknowledgments
 
 -   Credit to **Javier Mancilla, Theodoros D. Bouloumis, and Frederic Goguikian** for the foundational research that forms the entire basis for this computational replication.
+
 -   This project is built upon the exceptional tools provided by the open-source quantum and scientific Python communities. Sincere thanks to the developers of **PennyLane, D-Wave Ocean, PyPortfolioOpt, Pandas, NumPy, and SciPy**.
+
+--
+
+*This README was generated based on the structure and content of the `constrained_portfolio_optimization_via_quantum_approximate_optimization_algorithm_draft.ipynb` notebook and follows best practices for research software documentation.*
