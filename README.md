@@ -92,7 +92,7 @@ $$ \gamma_l = \frac{l}{p}\Delta t, \quad \beta_l = \left(1 - \frac{l}{p}\right)\
 Below is a diagram which summarizes the proposed approach:
 
 <div align="center">
-  <img src="https://github.com/chirindaopensource/constrained_portfolio_optimization_via_quantum_approximate_optimization_algorithm/blob/main/constrained_portfolio_optimization_via_quantum_approximate_optimization_algorithm_ipo_main_two.png" alt="QAOA-XY System Architecture" width="100%">
+  <img src="https://github.com/chirindaopensource/constrained_portfolio_optimization_via_quantum_approximate_optimization_algorithm/blob/main/constrained_portfolio_optimization_via_quantum_approximate_optimization_algorithm_ipo_main.png" alt="QAOA-XY System Architecture" width="100%">
 </div>
 
 ## Features
